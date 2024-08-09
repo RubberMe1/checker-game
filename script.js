@@ -1,7 +1,6 @@
 const board = document.getElementById('board');
 let selectedPiece = null;
 let turn = 'black';
-let isDoubleMove = false;
 
 const createBoard = () => {
     board.innerHTML = '';
@@ -37,6 +36,7 @@ const createBoard = () => {
 const handleSquareClick = (event) => {
     const square = event.currentTarget;
     const piece = square.querySelector('.piece');
+    console.log(`Square clicked: ${square.dataset.row}, ${square.dataset.col}`);
 
     if (selectedPiece) {
         const oldSquare = selectedPiece.parentElement;
@@ -44,20 +44,12 @@ const handleSquareClick = (event) => {
             if (isValidMove(oldSquare, square)) {
                 movePiece(oldSquare, square);
                 promoteToKing(square);
-                if (isDoubleMoveAvailable(square)) {
-                    selectedPiece = square.querySelector('.piece');
-                    selectedPiece.classList.add('highlight');
-                    isDoubleMove = true;
-                } else {
-                    selectedPiece.classList.remove('highlight');
-                    selectedPiece = null;
-                    isDoubleMove = false;
-                    checkWinner();
-                    switchTurn();
-                }
-            } else {
                 selectedPiece.classList.remove('highlight');
                 selectedPiece = null;
+                checkWinner();
+                switchTurn();
+            } else {
+                console.log('Invalid move');
             }
         } else {
             selectedPiece.classList.remove('highlight');
@@ -66,6 +58,7 @@ const handleSquareClick = (event) => {
     } else if (piece && piece.dataset.color === turn) {
         selectedPiece = piece;
         selectedPiece.classList.add('highlight');
+        console.log(`Piece selected: ${piece.dataset.color}`);
     }
 };
 
@@ -94,6 +87,7 @@ const isValidMove = (fromSquare, toSquare) => {
             const middlePiece = middleSquare.querySelector('.piece');
 
             if (middlePiece && middlePiece.dataset.color !== turn) {
+                middleSquare.removeChild(middlePiece);
                 return true;
             }
         }
@@ -106,13 +100,26 @@ const isValidMove = (fromSquare, toSquare) => {
             return true;
         }
 
-        if (Math.abs(rowDiff) === 2 && colDiff === 2) {
+        if (turn === 'black' && rowDiff === 2 && colDiff === 2) {
             const middleRow = (fromRow + toRow) / 2;
             const middleCol = (fromCol + toCol) / 2;
             const middleSquare = board.querySelector(`[data-row="${middleRow}"][data-col="${middleCol}"]`);
             const middlePiece = middleSquare.querySelector('.piece');
 
             if (middlePiece && middlePiece.dataset.color !== turn) {
+                middleSquare.removeChild(middlePiece);
+                return true;
+            }
+        }
+
+        if (turn === 'white' && rowDiff === -2 && colDiff === 2) {
+            const middleRow = (fromRow + toRow) / 2;
+            const middleCol = (fromCol + toCol) / 2;
+            const middleSquare = board.querySelector(`[data-row="${middleRow}"][data-col="${middleCol}"]`);
+            const middlePiece = middleSquare.querySelector('.piece');
+
+            if (middlePiece && middlePiece.dataset.color !== turn) {
+                middleSquare.removeChild(middlePiece);
                 return true;
             }
         }
@@ -121,52 +128,9 @@ const isValidMove = (fromSquare, toSquare) => {
     return false;
 };
 
-const isDoubleMoveAvailable = (square) => {
-    const row = parseInt(square.dataset.row);
-    const col = parseInt(square.dataset.col);
-    const piece = square.querySelector('.piece');
-
-    const possibleMoves = [
-        { row: row + 2, col: col + 2 },
-        { row: row + 2, col: col - 2 },
-        { row: row - 2, col: col + 2 },
-        { row: row - 2, col: col - 2 },
-    ];
-
-    for (const move of possibleMoves) {
-        const targetSquare = board.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
-        if (targetSquare && isValidMove(square, targetSquare)) {
-            return true;
-        }
-    }
-
-    return false;
-};
-
 const movePiece = (fromSquare, toSquare) => {
-    const piece = fromSquare.querySelector('.piece');
-    if (piece) {
-        toSquare.appendChild(piece);
-    }
-    removeCapturedPiece(fromSquare, toSquare);
-};
-
-const removeCapturedPiece = (fromSquare, toSquare) => {
-    const fromRow = parseInt(fromSquare.dataset.row);
-    const fromCol = parseInt(fromSquare.dataset.col);
-    const toRow = parseInt(toSquare.dataset.row);
-    const toCol = parseInt(toSquare.dataset.col);
-
-    if (Math.abs(toRow - fromRow) === 2) {
-        const middleRow = (fromRow + toRow) / 2;
-        const middleCol = (fromCol + toCol) / 2;
-        const middleSquare = board.querySelector(`[data-row="${middleRow}"][data-col="${middleCol}"]`);
-        const middlePiece = middleSquare.querySelector('.piece');
-
-        if (middlePiece) {
-            middleSquare.removeChild(middlePiece);
-        }
-    }
+    toSquare.appendChild(selectedPiece);
+    console.log(`Piece moved to: ${toSquare.dataset.row}, ${toSquare.dataset.col}`);
 };
 
 const promoteToKing = (square) => {
@@ -175,11 +139,13 @@ const promoteToKing = (square) => {
 
     if ((piece.dataset.color === 'black' && row === 7) || (piece.dataset.color === 'white' && row === 0)) {
         piece.classList.add('king');
+        console.log(`${piece.dataset.color} piece promoted to king at row ${row}`);
     }
 };
 
 const switchTurn = () => {
     turn = turn === 'black' ? 'white' : 'black';
+    console.log(`Turn switched to: ${turn}`);
 };
 
 const checkWinner = () => {
